@@ -99,17 +99,23 @@ seed:  ## Load the deterministic development dataset
 lint:  ## ruff lint + format check (backend) and eslint (frontend)
 	cd $(BACKEND) && $(UV) ruff check --config ruff.toml .
 	cd $(BACKEND) && $(UV) ruff format --check --config ruff.toml .
+	# Repository-root scripts are Python too — they get the same gates.
+	$(UV_ROOT) ruff check --config $(BACKEND)/ruff.toml scripts/
+	$(UV_ROOT) ruff format --check --config $(BACKEND)/ruff.toml scripts/
 	$(call frontend,pnpm lint)
 
 .PHONY: format
 format:  ## Apply ruff and prettier formatting
 	cd $(BACKEND) && $(UV) ruff check --fix --config ruff.toml .
 	cd $(BACKEND) && $(UV) ruff format --config ruff.toml .
+	$(UV_ROOT) ruff check --fix --config $(BACKEND)/ruff.toml scripts/
+	$(UV_ROOT) ruff format --config $(BACKEND)/ruff.toml scripts/
 	$(call frontend,pnpm format)
 
 .PHONY: typecheck
 typecheck:  ## mypy --strict (backend) and tsc --noEmit (frontend)
 	cd $(BACKEND) && $(UV) mypy --config-file mypy.ini
+	$(UV_ROOT) mypy --config-file $(BACKEND)/mypy.ini scripts/
 	$(call frontend,pnpm typecheck)
 
 .PHONY: arch

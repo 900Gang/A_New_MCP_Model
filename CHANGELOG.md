@@ -46,6 +46,11 @@ unit this project is reviewed in.
   `CODEOWNERS` does not route every entry. `CONTRIBUTING.md` no longer
   duplicates the list, since duplicating it is how it went stale.
 
+- Lint and type gates extended to the repository-root `scripts/` directory
+  (PRD amendment A8). Ruff and mypy were scoped to `backend/` only, so
+  `scripts/check_codeowners.py` was committed without ever being linted — and
+  it contained two real defects.
+
 ### Changed — Module 3
 
 - PRD deviations **D-h** and **D-i** recorded: the two-reviewer rule cannot be

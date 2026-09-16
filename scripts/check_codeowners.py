@@ -40,7 +40,7 @@ BARE: dict[str, str] = {
     "crypto.py": "backend/app/core/",
     "errors.py": "backend/app/core/",
     "exceptions.py": "backend/app/core/",
-    "oauth.py": "backend/app/schemas/",   # §6.5 schemas/oauth.py
+    "oauth.py": "backend/app/schemas/",  # §6.5 schemas/oauth.py
     "audit_repo.py": "backend/app/db/repositories/",
     "oauth_repo.py": "backend/app/db/repositories/",
     "order_service.py": "backend/app/services/",
@@ -79,8 +79,8 @@ def sec_files() -> list[str]:
 
 def owned_patterns() -> list[str]:
     patterns = []
-    for line in CODEOWNERS.read_text().splitlines():
-        line = line.split("#", 1)[0].strip()
+    for raw in CODEOWNERS.read_text().splitlines():
+        line = raw.split("#", 1)[0].strip()
         if not line:
             continue
         pattern = line.split()[0].lstrip("/")
@@ -98,7 +98,8 @@ def main() -> int:
     files = sec_files()
     missing = [f for f in files if not covered(f, patterns)]
 
-    print(f"(SEC) files in PRD §6: {len(files)}   routed by CODEOWNERS: {len(files) - len(missing)}")
+    routed = len(files) - len(missing)
+    print(f"(SEC) files in PRD §6: {len(files)}   routed by CODEOWNERS: {routed}")
     if missing:
         print("\nNOT routed — these would fall back to the one-approval default:")
         for f in missing:
