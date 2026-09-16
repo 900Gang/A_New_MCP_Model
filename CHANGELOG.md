@@ -51,16 +51,28 @@ unit this project is reviewed in.
   `scripts/check_codeowners.py` was committed without ever being linted — and
   it contained two real defects.
 
+- `docs/build-log.md` — what each module built, what running its gates found,
+  the current verified state, and the full preparation brief for Module 4
+  (`app/core/`), including two input gaps that cannot be invented: no UUIDv7
+  generator exists in Python 3.12 or in `uv.lock`, and the Bangalore coverage
+  polygon `constants.py` requires is specified in no source document.
+
 ### Changed — Module 3
 
 - PRD deviations **D-h** and **D-i** recorded: the two-reviewer rule cannot be
   satisfied by a one-engineer team, and the behaviour of an in-flight order when
   a person disconnects is undefined in the source documents.
 
-### Added — Module 2: tooling and quality gates
+### Added — Module 1: repository structure
 
 - Repository structure per PRD §5: 62 directories across `backend/`,
-  `frontend/`, `infra/`, `docs/` and `.github/`.
+  `frontend/`, `infra/`, `docs/` and `.github/`, plus `.semgrep/`, `scripts/`,
+  `docs/source/` and `frontend/e2e/` which §6, §10.5 and §11.2 require but the
+  tree omitted (PRD amendment A3).
+- No stub files: each of §6's ~120 source files arrives with real content in its
+  own module.
+
+### Added — Module 2: tooling and quality gates
 - Backend dependency set (PRD §4.1) resolved and hash-pinned in `uv.lock`;
   183 packages, audited clean by both `pip-audit` and `osv-scanner`.
 - Machine-enforced gates: ruff (24 rule families with a banned-API policy),

@@ -56,6 +56,7 @@ if CI runs it, it is a make target.
 |---|---|
 | [`docs/PRD-01-core-server-admin-connector.md`](docs/PRD-01-core-server-admin-connector.md) | Always. It is the governing specification; §17 logs every amendment. |
 | [`CLAUDE.md`](CLAUDE.md) | Before your first change. The rules, in two pages. |
+| [`docs/build-log.md`](docs/build-log.md) | To see what is built, what breaking it revealed, and what the next module needs before it starts. |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Before your first pull request. |
 | [`SECURITY.md`](SECURITY.md) | To report a vulnerability, or to learn the response SLA. |
 | [`docs/threat-model.md`](docs/threat-model.md) | Before touching anything marked **(SEC)**. |
