@@ -1,0 +1,57 @@
+# Routes review automatically. PRD §10.7: two approvals for any (SEC) file and
+# for every migration; one approval for everything else.
+#
+# CODEOWNERS routes reviewers; it does not set the approval COUNT — that is a
+# branch-protection setting ("Require approvals: 2" plus "Require review from
+# Code Owners"). Both are needed for §10.7 to actually hold.
+#
+# NOTE: @900Gang is currently the only owner. A single owner cannot satisfy a
+# two-reviewer rule. Replace the security line with a team of at least two
+# before the first (SEC) module merges, or record the gap as an accepted risk
+# under SECURITY.md's Medium SLA. See the open question in PRD §17 D-h.
+
+# ── Default ──────────────────────────────────────────────────────────────────
+*                                       @900Gang
+
+# ── The specification itself ─────────────────────────────────────────────────
+/docs/PRD-01-core-server-admin-connector.md   @900Gang
+/docs/threat-model.md                   @900Gang
+/docs/data-classification.md            @900Gang
+/docs/architecture/                     @900Gang
+
+# ── (SEC) — two approvals required ───────────────────────────────────────────
+# OAuth 2.1 authorization server: every file is security-critical.
+/backend/app/oauth/                     @900Gang
+
+# Token validation for the agent surface. "No token passthrough, ever."
+/backend/app/mcp/auth.py                @900Gang
+
+# The duplicate-order and duplicate-charge defect class (goal G5).
+/backend/app/services/order_service.py  @900Gang
+/backend/app/services/payment_service.py @900Gang
+/backend/app/api/v1/webhooks.py         @900Gang
+
+# Crypto, secrets, session handling, config, log redaction.
+/backend/app/core/security.py           @900Gang
+/backend/app/core/crypto.py             @900Gang
+/backend/app/core/config.py             @900Gang
+/backend/app/core/logging.py            @900Gang
+/backend/app/db/models/oauth.py         @900Gang
+/backend/app/db/models/idempotency.py   @900Gang
+/backend/app/db/models/audit.py         @900Gang
+/backend/app/db/repositories/oauth_repo.py @900Gang
+/backend/app/db/repositories/audit_repo.py @900Gang
+
+# Schema changes are irreversible in production. Two reviewers, always.
+/backend/alembic/versions/              @900Gang
+
+# ── The gates themselves ─────────────────────────────────────────────────────
+# Weakening a gate is a security change even when no application code moves.
+/.github/workflows/                     @900Gang
+/.semgrep/                              @900Gang
+/.gitleaks.toml                         @900Gang
+/.pre-commit-config.yaml                @900Gang
+/backend/.importlinter                  @900Gang
+/backend/ruff.toml                      @900Gang
+/backend/mypy.ini                       @900Gang
+/Makefile                               @900Gang

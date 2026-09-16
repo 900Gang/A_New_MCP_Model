@@ -1049,6 +1049,8 @@ Carried deliberately; each needs a decision before the section it touches is bui
 | D-e | §1.2 / FR-21 | FRD §8 and FR-21 require end-to-end demos on Claude, ChatGPT **and** Gemini; Task 1 scopes only Claude. Exit criterion **E1 ("all 26 FRD requirements implemented") cannot be literally true** at Task-1 close. | **Open** — needs explicit acceptance that FR-21 is partially met. |
 | D-f | §7.2 / §6.6 | Non-technical requirements §1.3 makes a valid FSSAI licence a go-live precondition, but the activation CHECK constraint covers only consent and smoke test. | **Open** — proposed as a third precondition. |
 | D-g | — | Restaurant settlement/payout, GST invoicing, and the Consumer Protection (E-Commerce) Rules 2020 disclosure surface are unmodelled. On Path A the tool output is the only channel to the customer. | **Open** — see the questions raised at kickoff. |
+| D-h | §10.7 | **The two-reviewer rule for (SEC) files cannot be satisfied by the documented team** — one infra lead plus two non-engineering interns. `CODEOWNERS` currently names a single owner, and one owner cannot approve twice. | **Open** — needs a second reviewer named, or an accepted risk under SECURITY.md's Medium SLA, **before the first (SEC) module merges**. Tracked as R7 in the threat model. |
+| D-i | HB2 FAQ | What happens to an **in-flight order when the person disconnects**. HB2 states revocation should not be assumed to cancel a placed order, but never says what should happen. | **Open.** Proposed: the order completes, the relay and payment proceed, and `get_order_status` stops being callable for it. Recorded in threat model TB-3. |
 
 ---
 

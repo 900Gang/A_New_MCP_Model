@@ -1,0 +1,49 @@
+# PRD §10.6 — grouped weekly updates. Grouping matters: a dozen separate PRs a
+# week gets rubber-stamped, which is worse than not scanning at all.
+version: 2
+
+updates:
+  - package-ecosystem: "uv"
+    directory: "/backend"
+    schedule: { interval: "weekly", day: "monday", time: "04:00", timezone: "Asia/Kolkata" }
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "backend"]
+    commit-message: { prefix: "chore(deps)", include: "scope" }
+    groups:
+      security-critical:
+        # These decide whether a token is valid or a payment is real.
+        # They are reviewed one at a time, never batched with anything else.
+        patterns: ["authlib", "pyjwt", "cryptography", "argon2-cffi", "mcp"]
+      backend-runtime:
+        patterns: ["*"]
+        exclude-patterns: ["authlib", "pyjwt", "cryptography", "argon2-cffi", "mcp"]
+        update-types: ["minor", "patch"]
+      backend-dev:
+        dependency-type: "development"
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule: { interval: "weekly", day: "monday", time: "04:00", timezone: "Asia/Kolkata" }
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "frontend"]
+    commit-message: { prefix: "chore(deps)", include: "scope" }
+    groups:
+      frontend:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule: { interval: "weekly", day: "monday", time: "04:00", timezone: "Asia/Kolkata" }
+    labels: ["dependencies", "ci"]
+    commit-message: { prefix: "chore(ci)" }
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: "docker"
+    directory: "/backend"
+    schedule: { interval: "weekly", day: "monday", time: "04:00", timezone: "Asia/Kolkata" }
+    labels: ["dependencies", "docker"]
+    commit-message: { prefix: "chore(docker)" }
