@@ -5,53 +5,87 @@
 # branch-protection setting ("Require approvals: 2" plus "Require review from
 # Code Owners"). Both are needed for §10.7 to actually hold.
 #
-# NOTE: @900Gang is currently the only owner. A single owner cannot satisfy a
-# two-reviewer rule. Replace the security line with a team of at least two
-# before the first (SEC) module merges, or record the gap as an accepted risk
-# under SECURITY.md's Medium SLA. See the open question in PRD §17 D-h.
+# This file is verified against the PRD by `scripts/check_codeowners.py`, which
+# runs in `make check`. Marking a new file (SEC) in PRD §6 makes that check
+# demand an entry here — the two cannot drift apart silently.
+#
+# NOTE: @900Gang is currently the only owner, and one owner cannot satisfy a
+# two-reviewer rule. Name a second reviewer before the first (SEC) module
+# merges, or record the gap as an accepted risk. See PRD §17 D-h and threat
+# model R7.
 
 # ── Default ──────────────────────────────────────────────────────────────────
-*                                       @900Gang
+*                                               @900Gang
 
-# ── The specification itself ─────────────────────────────────────────────────
-/docs/PRD-01-core-server-admin-connector.md   @900Gang
-/docs/threat-model.md                   @900Gang
-/docs/data-classification.md            @900Gang
-/docs/architecture/                     @900Gang
+# ── The specification and the security analysis ──────────────────────────────
+/docs/PRD-01-core-server-admin-connector.md     @900Gang
+/docs/threat-model.md                           @900Gang
+/docs/data-classification.md                    @900Gang
+/docs/architecture/                             @900Gang
+/SECURITY.md                                    @900Gang
 
-# ── (SEC) — two approvals required ───────────────────────────────────────────
-# OAuth 2.1 authorization server: every file is security-critical.
-/backend/app/oauth/                     @900Gang
+# ══ (SEC) — two approvals required ═══════════════════════════════════════════
+# Derived from every row PRD §6 marks (SEC). Keep in step via `make check`.
 
-# Token validation for the agent surface. "No token passthrough, ever."
-/backend/app/mcp/auth.py                @900Gang
+# §6.9 — OAuth 2.1 authorization server. Every file is security-critical.
+/backend/app/oauth/                             @900Gang
 
-# The duplicate-order and duplicate-charge defect class (goal G5).
-/backend/app/services/order_service.py  @900Gang
-/backend/app/services/payment_service.py @900Gang
-/backend/app/api/v1/webhooks.py         @900Gang
+# §6.2 — core primitives: secrets, crypto, config, log redaction, money.
+/backend/app/core/config.py                     @900Gang
+/backend/app/core/crypto.py                     @900Gang
+/backend/app/core/logging.py                    @900Gang
+/backend/app/core/money.py                      @900Gang
+/backend/app/core/security.py                   @900Gang
 
-# Crypto, secrets, session handling, config, log redaction.
-/backend/app/core/security.py           @900Gang
-/backend/app/core/crypto.py             @900Gang
-/backend/app/core/config.py             @900Gang
-/backend/app/core/logging.py            @900Gang
-/backend/app/db/models/oauth.py         @900Gang
-/backend/app/db/models/idempotency.py   @900Gang
-/backend/app/db/models/audit.py         @900Gang
-/backend/app/db/repositories/oauth_repo.py @900Gang
-/backend/app/db/repositories/audit_repo.py @900Gang
+# §6.5 — the OAuth wire contract.
+/backend/app/schemas/oauth.py                   @900Gang
+
+# §6.3 — models holding credentials, personal data, or money.
+/backend/app/db/models/admin.py                 @900Gang
+/backend/app/db/models/audit.py                 @900Gang
+/backend/app/db/models/end_user.py              @900Gang
+/backend/app/db/models/idempotency.py           @900Gang
+/backend/app/db/models/oauth.py                 @900Gang
+/backend/app/db/models/payment.py               @900Gang
+/backend/app/db/models/platform.py              @900Gang
+
+# §6.4 — repositories that must never expose a plaintext secret or a mutation.
+/backend/app/db/repositories/audit_repo.py      @900Gang
+/backend/app/db/repositories/oauth_repo.py      @900Gang
+
+# §6.6 — the duplicate-order and duplicate-charge defect class (goal G5).
+/backend/app/services/audit_service.py          @900Gang
+/backend/app/services/order_service.py          @900Gang
+/backend/app/services/payment_service.py        @900Gang
+
+# §6.7 — the admin edge: authn/authz, error shaping, upload handling, webhooks.
+/backend/app/api/deps.py                        @900Gang
+/backend/app/api/errors.py                      @900Gang
+/backend/app/api/middleware.py                  @900Gang
+/backend/app/api/v1/auth.py                     @900Gang
+/backend/app/api/v1/platform_keys.py            @900Gang
+/backend/app/api/v1/uploads.py                  @900Gang
+/backend/app/api/v1/webhooks.py                 @900Gang
+
+# §6.8 — token validation ("no token passthrough, ever") and the order tool.
+/backend/app/mcp/auth.py                        @900Gang
+/backend/app/mcp/tools/place_order.py           @900Gang
+
+# §6.12 — error reporting must never carry PII.
+/backend/app/observability/sentry.py            @900Gang
 
 # Schema changes are irreversible in production. Two reviewers, always.
-/backend/alembic/versions/              @900Gang
+/backend/alembic/versions/                      @900Gang
 
 # ── The gates themselves ─────────────────────────────────────────────────────
 # Weakening a gate is a security change even when no application code moves.
-/.github/workflows/                     @900Gang
-/.semgrep/                              @900Gang
-/.gitleaks.toml                         @900Gang
-/.pre-commit-config.yaml                @900Gang
-/backend/.importlinter                  @900Gang
-/backend/ruff.toml                      @900Gang
-/backend/mypy.ini                       @900Gang
-/Makefile                               @900Gang
+/.github/workflows/                             @900Gang
+/.github/CODEOWNERS                             @900Gang
+/.semgrep/                                      @900Gang
+/.gitleaks.toml                                 @900Gang
+/.pre-commit-config.yaml                        @900Gang
+/backend/.importlinter                          @900Gang
+/backend/ruff.toml                              @900Gang
+/backend/mypy.ini                               @900Gang
+/Makefile                                       @900Gang
+/scripts/check_codeowners.py                    @900Gang

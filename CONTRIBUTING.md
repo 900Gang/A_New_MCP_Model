@@ -64,11 +64,20 @@ rebase onto `main`, never merge `main` into your branch.
 
 `.github/CODEOWNERS` routes these automatically.
 
-The **(SEC)** set is the OAuth package, `mcp/auth.py`, `order_service.py`,
-`payment_service.py`, the webhook handlers, `core/security.py`, `core/crypto.py`,
-`core/config.py`, `core/logging.py`, and every migration. Two reviewers is not
-ceremony: these are the files where a mistake costs money, leaks personal data,
-or lets one person act as another.
+The **(SEC)** set is **whatever PRD §6 marks `(SEC)`** — currently 31 files:
+the whole OAuth package, `mcp/auth.py` and `place_order.py`, the order and
+payment services, the admin edge (`deps`, `errors`, `middleware`, `auth`,
+`uploads`, `platform_keys`, `webhooks`), the crypto/secrets/config/logging/money
+primitives, the models and repositories holding credentials or personal data,
+`observability/sentry.py`, and every migration.
+
+Do not copy that list anywhere. `scripts/check_codeowners.py` derives it from the
+PRD and fails `make check` if `CODEOWNERS` does not route every entry — so
+marking a file `(SEC)` in the PRD is sufficient, and duplicating the list is how
+it goes stale.
+
+Two reviewers is not ceremony: these are the files where a mistake costs money,
+leaks personal data, or lets one person act as another.
 
 ### Reviewing
 

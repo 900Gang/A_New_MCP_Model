@@ -116,6 +116,10 @@ typecheck:  ## mypy --strict (backend) and tsc --noEmit (frontend)
 arch:  ## import-linter — architectural rules A1-A4
 	cd $(BACKEND) && $(UV) lint-imports --config .importlinter
 
+.PHONY: codeowners
+codeowners:  ## Verify CODEOWNERS routes every (SEC) file in PRD §6
+	python3 scripts/check_codeowners.py
+
 # ── Tests (§11.2) ─────────────────────────────────────────────────────────────
 .PHONY: test
 test:  ## Full backend suite with coverage
@@ -192,7 +196,7 @@ openapi-check:  ## CI gate: fail if the committed OpenAPI doc or types are stale
 
 # ── Aggregates ────────────────────────────────────────────────────────────────
 .PHONY: check
-check: lint typecheck arch test security openapi-check  ## Everything CI runs, locally
+check: lint typecheck arch codeowners test security openapi-check  ## Everything CI runs, locally
 
 .PHONY: ci
 ci: check coverage-gate migrate-roundtrip  ## The full blocking gate set (§11.6)

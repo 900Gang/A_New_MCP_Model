@@ -34,6 +34,18 @@ unit this project is reviewed in.
   ADR-0005 (own OAuth AS vs hosted IdP) is **Proposed, not Accepted**, pending
   confirmation of PRD §15 decision D7.
 
+### Fixed — Module 3
+
+- `.github/CODEOWNERS` routed only **15 of the 31** files PRD §6 marks
+  **(SEC)**. The other 16 — including `core/money.py`, `api/deps.py`,
+  `api/v1/uploads.py`, `mcp/tools/place_order.py` and `observability/sentry.py`
+  — would have fallen back to the one-approval default, so §10.7's two-reviewer
+  rule would have read as satisfied while not being satisfied.
+- Added `scripts/check_codeowners.py` (PRD amendment A7), wired into
+  `make check`: it derives the **(SEC)** set from the PRD and fails if
+  `CODEOWNERS` does not route every entry. `CONTRIBUTING.md` no longer
+  duplicates the list, since duplicating it is how it went stale.
+
 ### Changed — Module 3
 
 - PRD deviations **D-h** and **D-i** recorded: the two-reviewer rule cannot be
