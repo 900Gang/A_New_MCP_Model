@@ -1,0 +1,156 @@
+# PRD §10.5 — custom Semgrep rules. All ERROR severity; all blocking in CI.
+# These encode the nine defect classes the PRD refuses to allow into the repo.
+rules:
+
+  # ── 1. Raw SQL string interpolation ─────────────────────────────────────────
+  - id: bharat-raw-sql-interpolation
+    languages: [python]
+    severity: ERROR
+    message: >-
+      SQL built by string interpolation. Use bound parameters or the typed ORM.
+      TB-8 (SQL injection), PRD §10.2.
+    pattern-either:
+      - pattern: sqlalchemy.text(f"...")
+      - pattern: sqlalchemy.text("..." % ...)
+      - pattern: sqlalchemy.text("...".format(...))
+      - pattern: text(f"...")
+      - pattern: text("..." % ...)
+      - pattern: text("...".format(...))
+      - pattern: $CONN.execute(f"...")
+      - pattern: $CONN.execute("..." + $X)
+    paths:
+      include: ["backend/app/**"]
+
+  # ── 2. httpx outside app/integrations/ (rule A4) ────────────────────────────
+  - id: bharat-httpx-outside-integrations
+    languages: [python]
+    severity: ERROR
+    message: >-
+      External I/O outside app/integrations/. Define a Protocol in
+      app/integrations/ with a fake in tests/fakes/. Rule A4, PRD §3.2.
+    pattern-either:
+      - pattern: import httpx
+      - pattern: from httpx import $X
+      - pattern: import aioboto3
+      - pattern: from aioboto3 import $X
+    paths:
+      include: ["backend/app/**"]
+      exclude: ["backend/app/integrations/**"]
+
+  # ── 3. Repository query with no tenant filter (rule A3) ─────────────────────
+  - id: bharat-unscoped-repository-query
+    languages: [python]
+    severity: ERROR
+    message: >-
+      select() without a tenant predicate. Every repository method takes an
+      explicit tenant scope — there is no unscoped SELECT. Rule A3, TB-8.
+    patterns:
+      - pattern: select($MODEL)
+      - pattern-not-inside: |
+          select($MODEL).where(...)
+      - pattern-not-inside: |
+          def $F(..., tenant_scope: $T, ...) -> $R:
+              ...
+    paths:
+      include: ["backend/app/db/repositories/**"]
+
+  # ── 4. float in a money path (rule A5 / goal G5) ────────────────────────────
+  - id: bharat-float-in-money-path
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Money is integer paise end to end — Python, Postgres, JSON and TypeScript.
+      Floats for money are a CI failure. Rule A5, PRD §11.1.
+    pattern-either:
+      - pattern-regex: '\b(price|amount|total|subtotal|tax|paise|fee|refund)\w*\s*:\s*float\b'
+      - pattern-regex: '\bfloat\s*\(\s*\w*(price|amount|total|subtotal|tax|paise)\w*\s*\)'
+      - pattern-regex: '\b(price|amount|total|subtotal|tax|paise)\w*\s*=\s*\d+\.\d+'
+    paths:
+      include: ["backend/app/**"]
+
+  # ── 5. Naive datetime construction (rule A6) ────────────────────────────────
+  - id: bharat-naive-datetime
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Naive datetime. All datetimes are timezone-aware UTC; inject Clock and
+      call clock.now_utc(). Rule A6, PRD §6.2.
+    pattern-either:
+      - pattern: datetime.datetime.utcnow()
+      - pattern: datetime.utcnow()
+      - pattern: datetime.datetime.now()
+      - pattern: datetime.now()
+      - pattern: datetime.datetime.today()
+    paths:
+      include: ["backend/app/**"]
+
+  # ── 6. Non-constant-time comparison of a secret ─────────────────────────────
+  - id: bharat-secret-compared-with-equals
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Timing-unsafe comparison of a secret. Use
+      app.core.security.constant_time_compare (hmac.compare_digest).
+      TB-3/TB-5/TB-6, PRD §10.2.
+    patterns:
+      - pattern-regex: '\b\w*(token|secret|signature|digest|otp|hmac|password|api_key|apikey)\w*\s*(==|!=)\s*'
+      - pattern-not-regex: '\bcompare_digest\b'
+    paths:
+      include: ["backend/app/**"]
+
+  # ── 7. An MCP tool that declares no scope ───────────────────────────────────
+  - id: bharat-mcp-tool-without-scope
+    languages: [python]
+    severity: ERROR
+    message: >-
+      MCP tool with no declared scope. Authorisation is deny-by-default; a tool
+      without an explicit scope must fail closed. PRD §10.3, TB-1.
+    patterns:
+      - pattern: |
+          @$SERVER.tool(...)
+          async def $TOOL(...) -> $R:
+              ...
+      - pattern-not: |
+          @$SERVER.tool(...)
+          @require_scope(...)
+          async def $TOOL(...) -> $R:
+              ...
+    paths:
+      include: ["backend/app/mcp/tools/**"]
+
+  # ── 8. Internal exception text returned to a caller ─────────────────────────
+  - id: bharat-exception-text-leaked-to-client
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Internal exception text returned to a caller leaks internals. Raise a
+      BharatMCPError carrying agent_message / admin_message instead.
+      FR-22, PRD §6.2. (Logging str(exc) to an admin sink is fine; returning it
+      to an agent or a browser is not.)
+    patterns:
+      - pattern-inside: |
+          try:
+              ...
+          except $E as $EXC:
+              ...
+      - pattern-either:
+          - pattern: return str($EXC)
+          - pattern: 'return {..., $K: str($EXC)}'
+          - pattern: raise HTTPException(..., detail=str($EXC), ...)
+          - pattern: 'return JSONResponse(..., content={..., $K: str($EXC)})'
+          - pattern: return PlainTextResponse(str($EXC), ...)
+    paths:
+      include: ["backend/app/**"]
+
+  # ── 9. PII written to a log ─────────────────────────────────────────────────
+  - id: bharat-pii-in-log-call
+    languages: [python]
+    severity: ERROR
+    message: >-
+      PII field passed to a logger. Bind redacted context only; the structlog
+      redaction processor is a backstop, not a licence. TB-10 (DPDP Act).
+    patterns:
+      - pattern-regex: '\blog(ger)?\.\w+\([^)]*\b(phone|email|address|otp|token|customer_contact|card|upi_id|password)\s*='
+      - pattern-not-regex: '\b(phone|email|address|otp|token|customer_contact|card|upi_id|password)\w*_(redacted|hash|digest|masked)\b'
+    paths:
+      include: ["backend/app/**"]

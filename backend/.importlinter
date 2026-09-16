@@ -1,0 +1,123 @@
+; PRD §3.2 — architectural rules A1-A4, machine-enforced.
+; A violation fails CI; it is not a review comment.
+[importlinter]
+root_packages =
+    app
+include_external_packages = True
+
+; ── A1 + A2: one-way dependency flow ──────────────────────────────────────────
+; Adapters (api / mcp / oauth / workers) sit above domain services, which sit
+; above repositories, which sit above models. Nothing points back up.
+[importlinter:contract:layering]
+name = A1/A2 - adapters over services over repositories over models
+type = layers
+layers =
+    app.api | app.mcp | app.oauth | app.workers
+    app.services
+    app.db.repositories
+    app.db.models
+exhaustive = False
+
+; ── A2: domain services are framework-free ────────────────────────────────────
+; They must be unit-testable with no ASGI app in the room.
+[importlinter:contract:services-are-framework-free]
+name = A2 - services import no web framework and no protocol library
+type = forbidden
+source_modules =
+    app.services
+forbidden_modules =
+    fastapi
+    starlette
+    mcp
+    httpx
+    authlib
+
+; ── A4: all external I/O goes through app/integrations/ ───────────────────────
+[importlinter:contract:httpx-confined-to-integrations]
+name = A4 - httpx and aioboto3 are importable only inside app.integrations
+type = forbidden
+source_modules =
+    app.api
+    app.mcp
+    app.oauth
+    app.services
+    app.db
+    app.core
+    app.workers
+    app.observability
+forbidden_modules =
+    httpx
+    aioboto3
+    boto3
+
+; ── A1: the MCP layer is a thin adapter, not a data layer ─────────────────────
+[importlinter:contract:mcp-has-no-database-access]
+name = A1 - MCP tools reach the database only through services
+type = forbidden
+source_modules =
+    app.mcp
+forbidden_modules =
+    app.db
+    sqlalchemy
+    asyncpg
+
+; ── A3: raw SQLAlchemy sessions live only in the repository layer ─────────────
+[importlinter:contract:orm-confined-to-db-layer]
+name = A3 - sqlalchemy is importable only inside app.db
+type = forbidden
+source_modules =
+    app.services
+    app.api
+    app.oauth
+    app.core
+    app.schemas
+    app.integrations
+forbidden_modules =
+    sqlalchemy
+    asyncpg
+
+; ── core/ is the bottom of the world: it imports nothing of ours ──────────────
+[importlinter:contract:core-is-independent]
+name = core imports no other app package
+type = forbidden
+source_modules =
+    app.core
+forbidden_modules =
+    app.db
+    app.schemas
+    app.services
+    app.api
+    app.mcp
+    app.oauth
+    app.integrations
+    app.workers
+    app.observability
+
+; ── schemas/ is the single source of truth: it depends on core alone ──────────
+[importlinter:contract:schemas-depend-only-on-core]
+name = schemas import only app.core
+type = forbidden
+source_modules =
+    app.schemas
+forbidden_modules =
+    app.db
+    app.services
+    app.api
+    app.mcp
+    app.oauth
+    app.integrations
+    app.workers
+
+; ── integrations/ know nothing about our domain ───────────────────────────────
+; An adapter that imports a service has become business logic.
+[importlinter:contract:integrations-are-leaves]
+name = A4 - integrations import no domain package
+type = forbidden
+source_modules =
+    app.integrations
+forbidden_modules =
+    app.services
+    app.db
+    app.api
+    app.mcp
+    app.oauth

@@ -1,0 +1,107 @@
+# PRD §6.1 — the local stack. Image versions match production exactly, so a
+# constraint or locking behaviour that holds here holds there.
+#
+# Credentials below are local-development only. Deployed environments read from
+# a secrets manager; §10.3 forbids .env in any deployed environment.
+
+name: bharat-mcp
+
+services:
+  postgres:
+    image: postgres:16.4-alpine
+    environment:
+      POSTGRES_USER: bharat
+      POSTGRES_PASSWORD: bharat   # pragma: allowlist secret  (local dev only; §10.3 forbids .env in deployed envs)
+      POSTGRES_DB: bharat
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/docker/postgres-init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bharat -d bharat"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    command:
+      - postgres
+      - -c
+      - log_min_duration_statement=200    # surface a slow query before k6 does
+
+  redis:
+    image: redis:7.4-alpine
+    ports: ["6379:6379"]
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    # noeviction is deliberate: Redis holds idempotency reservations and arq jobs.
+    # Silently evicting either is a correctness bug, not a capacity tradeoff.
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z   # not Docker Hub: minio/minio there denies anonymous pulls
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: bharat
+      MINIO_ROOT_PASSWORD: bharat-local-only   # pragma: allowlist secret
+    ports: ["9000:9000", "9001:9001"]
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:v1.21
+    ports: ["1025:1025", "8025:8025"]
+    environment:
+      MP_MAX_MESSAGES: 500
+
+  # ── Application services ───────────────────────────────────────────────────
+  # Inert until backend/Dockerfile and the app entrypoint exist; `make up`
+  # starts only the datastores above.
+  api:
+    build:
+      context: ./backend
+      target: dev
+    command: >-
+      uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports: ["8000:8000"]
+    env_file:
+      - path: ./backend/.env
+        required: false   # real file lands with app/core/config.py
+    volumes:
+      - ./backend:/app:delegated
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      minio: { condition: service_healthy }
+    user: "10001:10001"
+    security_opt: ["no-new-privileges:true"]
+
+  worker:
+    build:
+      context: ./backend
+      target: dev
+    command: ["arq", "app.workers.main.WorkerSettings"]
+    env_file:
+      - path: ./backend/.env
+        required: false   # real file lands with app/core/config.py
+    volumes:
+      - ./backend:/app:delegated
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    user: "10001:10001"
+    security_opt: ["no-new-privileges:true"]
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:

@@ -1,0 +1,11 @@
+# PRD §4.2 / §10.1 PW.8 — Python security lint, blocking in CI.
+exclude_dirs:
+  - tests
+  - alembic/versions
+
+# B101 assert_used  — ruff owns this (S101); bandit would double-report.
+# B601-B607 shell   — kept on deliberately: this codebase runs no subprocesses.
+skips:
+  - B101
+
+# Any finding at MEDIUM or above fails the build (§10.8: zero open High/Critical).

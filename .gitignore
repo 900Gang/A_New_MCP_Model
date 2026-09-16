@@ -1,0 +1,61 @@
+# ── OS / editor ───────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# ── Secrets: .env is local-development only and never committed (§10.3) ───────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+!**/testdata/*.key
+secrets.json
+.secrets/
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+.import_linter_cache/
+.pytest_cache/
+.hypothesis/
+.coverage
+.coverage.*
+coverage.xml
+coverage.json
+htmlcov/
+/backend/openapi.json.tmp
+/backend/.audit-requirements.txt
+
+# ── Node / frontend ───────────────────────────────────────────────────────────
+node_modules/
+dist/
+.vite/
+playwright-report/
+test-results/
+blob-report/
+/frontend/coverage/
+
+# ── Infra ─────────────────────────────────────────────────────────────────────
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl
+
+# ── Local stack volumes ───────────────────────────────────────────────────────
+/.data/
+
+# ── Build / audit artefacts ───────────────────────────────────────────────────
+*.sbom.json
+trivy-report.*
+semgrep-report.*

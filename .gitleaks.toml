@@ -1,0 +1,122 @@
+# PRD §6.1 (SEC) — blocks a committed key before it reaches history.
+# Runs pre-commit on the diff, and in CI over the FULL history.
+title = "Bharat MCP secret patterns"
+
+[extend]
+useDefault = true          # AWS, GCP, Slack, Stripe, SSH/PGP keys, generic high-entropy
+
+# ── Payments (TB-5: a leaked PSP key is direct monetary loss) ──────────────────
+[[rules]]
+id = "razorpay-key-id"
+description = "Razorpay key id"
+regex = '''rzp_(test|live)_[A-Za-z0-9]{14,}'''
+tags = ["psp", "razorpay"]
+
+[[rules]]
+id = "razorpay-key-secret"
+description = "Razorpay key secret assigned to a variable"
+regex = '''(?i)razorpay[_-]?(key[_-]?)?secret\s*[:=]\s*['"][A-Za-z0-9]{20,}['"]'''
+tags = ["psp", "razorpay"]
+
+[[rules]]
+id = "razorpay-webhook-secret"
+description = "Razorpay webhook signing secret"
+regex = '''(?i)razorpay[_-]?webhook[_-]?secret\s*[:=]\s*['"][^'"]{8,}['"]'''
+tags = ["psp", "razorpay"]
+
+[[rules]]
+id = "cashfree-credentials"
+description = "Cashfree app id or secret key"
+regex = '''(?i)(cashfree[_-]?(app[_-]?id|secret[_-]?key)|CF_SECRET_KEY)\s*[:=]\s*['"][A-Za-z0-9_\-]{16,}['"]'''
+tags = ["psp", "cashfree"]
+
+# ── WhatsApp / Meta (TB-6: a leaked BSP token forges restaurant acceptances) ───
+[[rules]]
+id = "meta-access-token"
+description = "Meta / WhatsApp Cloud API access token"
+regex = '''EAA[A-Za-z0-9]{60,}'''
+tags = ["bsp", "meta"]
+
+[[rules]]
+id = "meta-app-secret"
+description = "Meta app secret used for webhook signature verification"
+regex = '''(?i)(meta|facebook|whatsapp)[_-]?app[_-]?secret\s*[:=]\s*['"][a-f0-9]{32}['"]'''
+tags = ["bsp", "meta"]
+
+[[rules]]
+id = "gupshup-api-key"
+description = "Gupshup API key"
+regex = '''(?i)gupshup[_-]?api[_-]?key\s*[:=]\s*['"][a-z0-9]{28,}['"]'''
+tags = ["bsp", "gupshup"]
+
+[[rules]]
+id = "twilio-auth-token"
+description = "Twilio auth token"
+regex = '''(?i)twilio[_-]?auth[_-]?token\s*[:=]\s*['"][a-f0-9]{32}['"]'''
+tags = ["bsp", "twilio"]
+
+# ── AI platform keys ──────────────────────────────────────────────────────────
+[[rules]]
+id = "anthropic-api-key"
+description = "Anthropic API key"
+regex = '''sk-ant-(api03|admin01)-[A-Za-z0-9_\-]{80,}'''
+tags = ["ai", "anthropic"]
+
+[[rules]]
+id = "openai-api-key"
+description = "OpenAI API key"
+regex = '''sk-(proj-)?[A-Za-z0-9_\-]{32,}'''
+tags = ["ai", "openai"]
+
+# ── Our own signing material (TB-2/TB-3: forge any access token) ──────────────
+[[rules]]
+id = "private-key-block"
+description = "PEM private key of any kind"
+regex = '''-----BEGIN ((EC|RSA|DSA|OPENSSH|PGP) )?PRIVATE KEY( BLOCK)?-----'''
+tags = ["crypto", "signing"]
+
+[[rules]]
+id = "ed25519-jwk-private"
+description = "Ed25519 JWK with a private component"
+regex = '''"kty"\s*:\s*"OKP"[^}]*"d"\s*:\s*"[A-Za-z0-9_\-]{40,}"'''
+tags = ["crypto", "oauth"]
+
+[[rules]]
+id = "bharat-platform-credential"
+description = "Bharat MCP platform credential (prefix-identifiable by design, §10.3)"
+regex = '''bmcp_(live|test)_[A-Za-z0-9]{32,}'''
+tags = ["platform-key"]
+
+[[rules]]
+id = "contact-encryption-key"
+description = "AES key for customer-contact-at-rest encryption"
+regex = '''(?i)(contact|pii)[_-]?encryption[_-]?key\s*[:=]\s*['"][A-Za-z0-9+/=]{40,}['"]'''
+tags = ["crypto", "pii"]
+
+# ── Datastore URLs carrying inline credentials ────────────────────────────────
+[[rules]]
+id = "postgres-url-with-password"
+regex = '''postgres(ql)?(\+asyncpg)?://[^:\s]+:[^@\s]{3,}@'''
+description = "Postgres URL with an inline password"
+tags = ["datastore"]
+
+[[rules]]
+id = "redis-url-with-password"
+regex = '''rediss?://[^:\s]*:[^@\s]{3,}@'''
+description = "Redis URL with an inline password"
+tags = ["datastore"]
+
+[allowlist]
+description = "Local development and fixture values only"
+paths = [
+  '''\.gitleaks\.toml$''',
+  '''(^|/)\.env\.example$''',
+  '''(^|/)docker-compose\.yml$''',
+  '''(^|/)backend/tests/fixtures/''',
+  '''(^|/)docs/''',
+]
+regexes = [
+  '''postgres(ql)?(\+asyncpg)?://bharat:bharat@''',   # pragma: allowlist secret - this is a DETECTION pattern, not a credential
+  '''rediss?://:?@?(localhost|redis):6379''',
+  '''EXAMPLE|PLACEHOLDER|CHANGEME|dummy|fake''',
+]

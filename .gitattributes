@@ -1,0 +1,21 @@
+* text=auto eol=lf
+
+*.py     text diff=python
+*.ts     text
+*.tsx    text
+*.md     text diff=markdown
+*.sql    text
+*.yml    text
+*.yaml   text
+Makefile text
+
+# Lockfiles are generated: keep them out of diffs and reviews by default.
+uv.lock         linguist-generated=true -diff
+pnpm-lock.yaml  linguist-generated=true -diff
+backend/openapi.json linguist-generated=true
+
+# Binary source documents.
+*.pdf  binary
+*.png  binary
+*.jpg  binary
+*.webp binary

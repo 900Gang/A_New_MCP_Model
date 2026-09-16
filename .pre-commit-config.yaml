@@ -1,0 +1,123 @@
+# PRD §6.1 — the local half of the CI gate. Same tools, same configs, run
+# before a commit exists rather than after a PR is opened.
+# Install once with: make hooks
+minimum_pre_commit_version: "4.0.0"
+fail_fast: false
+default_language_version:
+  python: python3.12
+
+repos:
+  # ── Hygiene ─────────────────────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=512"]
+      - id: check-yaml
+        args: ["--allow-multiple-documents"]
+      - id: check-toml
+      - id: check-json
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+      - id: detect-private-key
+      - id: no-commit-to-branch
+        args: ["--branch", "main"]        # §11.6 branch protection, locally too
+
+  # ── Secrets: blocks the key before it reaches history (SEC) ─────────────────
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+        args: ["--config", ".gitleaks.toml", "--redact"]
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        exclude: '(?x)^(docs/source/.*|.*\.lock|pnpm-lock\.yaml)$'
+
+  # ── Backend: lint, format, types, architecture ─────────────────────────────
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.7.4
+    hooks:
+      - id: ruff
+        args: ["--fix", "--exit-non-zero-on-fix", "--config", "backend/ruff.toml"]
+        files: ^backend/
+      - id: ruff-format
+        args: ["--config", "backend/ruff.toml"]
+        files: ^backend/
+
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy --strict (backend)
+        entry: bash -c 'cd backend && uv run mypy --config-file mypy.ini'
+        language: system
+        types: [python]
+        files: ^backend/
+        pass_filenames: false
+
+      - id: import-linter
+        name: import-linter (rules A1-A4)
+        entry: bash -c 'cd backend && uv run lint-imports --config .importlinter'
+        language: system
+        types: [python]
+        files: ^backend/app/
+        pass_filenames: false
+
+      - id: semgrep-custom
+        name: semgrep (Bharat MCP custom rules, §10.5)
+        entry: bash -c 'uv run --project backend semgrep --config .semgrep/bharat-mcp.yml --error --quiet'
+        language: system
+        types: [python]
+        files: ^backend/app/
+        pass_filenames: false
+
+      - id: migration-safety
+        name: alembic migration safety (§6.13)
+        entry: >-
+          bash -c 'if [ -e backend/scripts/check_migration_safety.py ]; then cd backend && uv run python scripts/check_migration_safety.py;
+          else echo "  -- not present yet, skipped (check_migration_safety.py)"; fi'
+        language: system
+        files: ^backend/alembic/versions/
+        pass_filenames: false
+
+      - id: openapi-drift
+        name: OpenAPI document is current (§11.6)
+        entry: >-
+          bash -c 'if [ -e backend/scripts/generate_openapi.py ]; then cd backend && uv run python scripts/generate_openapi.py --check;
+          else echo "  -- not present yet, skipped (generate_openapi.py)"; fi'
+        language: system
+        files: ^backend/app/(schemas|api)/
+        pass_filenames: false
+
+      # ── Frontend ────────────────────────────────────────────────────────────
+      - id: frontend-typecheck
+        name: tsc --noEmit (frontend)
+        entry: >-
+          bash -c 'if [ -e frontend/package.json ]; then cd frontend && pnpm typecheck;
+          else echo "  -- not present yet, skipped (frontend workspace)"; fi'
+        language: system
+        files: ^frontend/src/
+        pass_filenames: false
+
+      - id: frontend-lint
+        name: eslint (frontend)
+        entry: >-
+          bash -c 'if [ -e frontend/package.json ]; then cd frontend && pnpm lint;
+          else echo "  -- not present yet, skipped (frontend workspace)"; fi'
+        language: system
+        files: ^frontend/(src|e2e)/
+        pass_filenames: false
+
+  # ── Commit message ──────────────────────────────────────────────────────────
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.6.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: ["feat", "fix", "docs", "refactor", "test", "chore", "sec", "perf", "build", "ci"]

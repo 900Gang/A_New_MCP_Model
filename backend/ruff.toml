@@ -1,0 +1,77 @@
+# PRD §4.2 — ruff replaces black + isort + flake8 + pyupgrade.
+target-version = "py312"
+line-length = 100
+src = ["."]
+extend-exclude = ["alembic/versions"]
+
+[lint]
+select = [
+    "F", "E", "W",      # pyflakes / pycodestyle
+    "I",                # isort
+    "UP",               # pyupgrade
+    "B",                # bugbear
+    "C4",               # comprehensions
+    "SIM",              # simplify
+    "RET",              # return consistency
+    "PTH",              # pathlib over os.path
+    "ASYNC",            # async correctness (blocking call in async def)
+    "S",                # bandit-equivalent security lint
+    "BLE",              # BLE001: bare/broad except  ← §11.1 "no silent failure"
+    "DTZ",              # naive datetime             ← §11.1 "no timezone bugs"
+    "TID",              # banned-api (below)
+    "ARG",              # unused arguments
+    "PL",               # pylint subset
+    "RUF",              # ruff-specific
+    "ANN",              # missing annotations (mypy strict's partner)
+    "N",                # pep8-naming
+    "T20",              # print() left in code
+    "ERA",              # commented-out code  ← §11.5 "no commented-out code is merged"
+    "TRY",              # exception antipatterns
+    "LOG", "G",         # logging correctness
+]
+ignore = [
+    "ANN401",   # typed *args/**kwargs as Any — mypy strict already forbids bare Any
+    "TRY003",   # long messages inside raise — our errors carry agent_message deliberately
+    "S101",     # assert — re-enabled for app/ below, allowed in tests
+]
+
+[lint.per-file-ignores]
+# config.py is the ONLY place allowed to read the environment (§6.2).
+"**/app/core/config.py" = ["TID251"]
+# Tests may assert, use fixtures with unused args, and hardcode fake secrets.
+"**/tests/**" = ["S101", "S105", "S106", "ARG001", "ARG002", "PLR2004", "ANN201", "ANN001"]
+"**/scripts/**" = ["T201"]          # operator CLIs are allowed to print
+"**/alembic/env.py" = ["ANN", "ERA"]
+
+[lint.flake8-tidy-imports.banned-api]
+# ── Rule A6: all datetimes are timezone-aware UTC ─────────────────────────────
+"datetime.datetime.utcnow".msg = "Naive UTC. Inject Clock and call clock.now_utc() (§6.2 clock.py, rule A6)."
+"datetime.datetime.utcfromtimestamp".msg = "Naive UTC. Use datetime.fromtimestamp(ts, tz=UTC) (rule A6)."
+# ── §6.2: no os.getenv outside core/config.py ─────────────────────────────────
+"os.getenv".msg = "Read config only through app.core.config.Settings (§6.2)."
+"os.environ".msg = "Read config only through app.core.config.Settings (§6.2)."
+# ── §4.1: libraries this project has decided against ──────────────────────────
+"passlib".msg = "Unmaintained. Use argon2-cffi (§4.1)."
+"pytz".msg = "Use stdlib zoneinfo (§4.1)."
+"pandas".msg = "80MB for row validation is unjustified. Use stdlib csv + pydantic (§4.1)."
+# ── Rule A5 / G5: money is integer paise, never float ─────────────────────────
+"decimal.Decimal".msg = "Money is integer paise (app.core.money.Paise), not Decimal (rule A5)."
+
+[lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path", "fastapi.Header"]
+
+[lint.isort]
+known-first-party = ["app", "tests"]
+required-imports = ["from __future__ import annotations"]
+
+[lint.pylint]
+max-args = 8
+
+[lint.pydocstyle]
+convention = "google"
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+docstring-code-format = true
