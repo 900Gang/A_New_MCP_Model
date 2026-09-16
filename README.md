@@ -1,4 +1,4 @@
-# Bharat MCP
+# New MCP
 
 Restaurant data and ordering, exposed to AI agents over the **Model Context
 Protocol**. A person asks Claude for a dish; Claude searches, reads the menu,
@@ -12,7 +12,7 @@ Bangalore pilot — 500 restaurants. Internal.
 Claude (or any MCP client)
    │  OAuth 2.1, PKCE, audience-bound token
    ▼
-Bharat MCP — one FastAPI service
+New MCP — one FastAPI service
    /mcp         six tools over Streamable HTTP
    /oauth/*     first-party authorization server + consent screen
    /api/v1/*    admin REST behind cookie sessions + CSRF
